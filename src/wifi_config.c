@@ -243,6 +243,7 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     form_param_t *password_param = form_params_find(form, "password");
     form_param_t *otarepo_param = form_params_find(form, "otarepo");
     form_param_t *otafile_param = form_params_find(form, "otafile");
+    form_param_t *otabeta_param = form_params_find(form, "otabeta");
     if (!ssid_param || !password_param) {
         form_params_free(form);
         client_send_redirect(client, 302, "/settings");
@@ -256,6 +257,7 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     sysparam_set_string("wifi_password", password_param->value);
     if (otarepo_param && otarepo_param->value) sysparam_set_string("ota_repo", otarepo_param->value);
     if (otafile_param && otafile_param->value) sysparam_set_string("ota_file", otafile_param->value);
+    if (otabeta_param && otabeta_param->value) sysparam_set_bool("ota_use_pre-release", otabeta_param->value);
     form_params_free(form);
 
     vTaskDelay(500 / portTICK_PERIOD_MS);

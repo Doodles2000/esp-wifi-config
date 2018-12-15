@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>WiFi Configration</title>
+<title>WiFi Configuration</title>
 <style type="text/css">
 html, input {font-size: 40px;}
 h1 { font-size: 150%; text-align: center; }
@@ -84,6 +84,13 @@ input[type=submit][disabled] {
             <div class="field otafile" style="display: block;">
                 <label for="otafile">OTA binary file:</label>
                 <input type="text" id="otafile" name="otafile" value="main.bin" />
+            </div>
+            <div class="form-checkbox unchecked">
+                <label>
+                <input name="otabeta" type="hidden" value="0" />
+                <input type="checkbox" value="1" name="otabeta" id="otabeta" />
+                Use (maybe broken) pre-releases?
+                </label>
             </div>
                 <!-- part HTML_SETTINGS_FOOTER -->
         </form>
