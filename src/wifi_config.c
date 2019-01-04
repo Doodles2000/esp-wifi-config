@@ -257,7 +257,7 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     sysparam_set_string("wifi_password", password_param->value);
     if (otarepo_param && otarepo_param->value) sysparam_set_string("ota_repo", otarepo_param->value);
     if (otafile_param && otafile_param->value) sysparam_set_string("ota_file", otafile_param->value);
-    if (otabeta_param && otabeta_param->value) sysparam_set_bool("ota_use_pre-release", otabeta_param->value[0]-0x30);
+    if (otabeta_param && otabeta_param->value) sysparam_set_bool("ota_beta", otabeta_param->value[0]-0x30);
     form_params_free(form);
 
     vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -399,7 +399,7 @@ static void http_task(void *arg) {
             }
 
             if (data_len > 0) {
-                DEBUG("Got %d incomming data", data_len);
+                DEBUG("Got %d incoming data", data_len);
 
                 http_parser_execute(
                     &client->parser, &wifi_config_http_parser_settings,
@@ -682,6 +682,108 @@ static int wifi_config_station_connect() {
 }
 
 
+size_t tty_readline(char *buffer, size_t buf_size) {
+    size_t i = 0;
+    int c;
+
+    while (true) {
+        c = getchar();
+        if (c == '\n') { //ignore  c == '\r' || 
+            putchar('\n');
+            break;
+        } else if (c == '\b' || c == 0x7f) {
+            if (i) {
+                printf("\b \b");
+                fflush(stdout);
+                i--;
+            }
+        } else if (c < 0x20) {
+            /* Ignore other control characters */
+        } else if (i >= buf_size - 1) {
+            putchar('\a');
+            fflush(stdout);
+        } else {
+            buffer[i++] = c;
+            putchar(c);
+            fflush(stdout);
+        }
+    }
+    buffer[i] = 0;
+    return i;
+}
+
+int  timeleft=30; //30 seconds timeout to setup the welcome screen
+#define CMD_BUF_SIZE 80
+#define DEFAULTREPO "HomeACessoryKid/ota-demo"
+#define DEFAULTFILE "main.bin"
+void serial_input(void *arg) {
+    char cmd_buffer[CMD_BUF_SIZE];
+    size_t len;
+    sysparam_status_t status;
+    sysparam_iter_t iter;
+
+    printf(
+    "\nLifeCycleManager version %s\n"
+    "Will start Wifi AP for config if no input in 5 seconds\n"
+    "Press <enter> to begin\n"
+    "Too Late, Typo? Just restart\n"
+    , OTAVERSION);
+    timeleft=5; //wait 5 seconds after presenting the welcome message
+    tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the <enter>
+    timeleft=65535; //wait 'forever'
+
+    printf( "Enter the ota repository or <enter> for " DEFAULTREPO "\n");
+    len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
+    if (!len) strcpy(cmd_buffer,DEFAULTREPO);
+    sysparam_set_string("ota_repo",cmd_buffer);
+    
+    printf("Enter the ota file or <enter> for " DEFAULTFILE "\n");
+    len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
+    if (!len) strcpy(cmd_buffer,DEFAULTFILE);
+    sysparam_set_string("ota_file",cmd_buffer);
+    
+    printf("Enter the ota use of pre-release \"y\" or <enter> for not\n");
+    len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
+    if (len) sysparam_set_string("ota_beta","y");
+    
+    printf("Enter the wifi SSID\n");
+    tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the SSID
+    sysparam_set_string("wifi_ssid",cmd_buffer);
+    
+    printf("Enter the wifi password or <enter> to skip\n");
+    len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the password
+    if (len) sysparam_set_string("wifi_password",cmd_buffer);
+
+    printf("Result:\n");
+    status = sysparam_iter_start(&iter);
+    if (status < 0) timeleft=1;
+    while (true) {
+        status = sysparam_iter_next(&iter);
+        if (status != SYSPARAM_OK) break; //at the end SYSPARAM_NOTFOUND
+        printf("'%s'='%s'\n",iter.key, (char *)iter.value);
+    }
+    sysparam_iter_end(&iter);
+
+    printf("\nIf this is not OK, re-flash the device\n"
+            "Press <enter> to continue\n");
+    tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the <enter>
+
+    timeleft=1;
+    vTaskDelete(NULL);
+}    
+
+
+void timeout_task(void *arg) {
+    while(timeleft-->0) {
+        vTaskDelay(1000/portTICK_PERIOD_MS); //1 second
+    }
+    if (wifi_config_station_connect()) {
+        wifi_config_softap_start();
+    }   
+    vTaskDelete(NULL);
+}
+
+
 void wifi_config_init(const char *ssid_prefix, const char *password, void (*on_wifi_ready)()) {
     INFO("Initializing WiFi config");
     if (password && strlen(password) < 8) {
@@ -699,7 +801,8 @@ void wifi_config_init(const char *ssid_prefix, const char *password, void (*on_w
     context->on_wifi_ready = on_wifi_ready;
 
     if (wifi_config_station_connect()) {
-        wifi_config_softap_start();
+        xTaskCreate(timeout_task,"timeout",256,NULL,1,NULL);
+        xTaskCreate(serial_input,"serial" ,256,NULL,1,NULL);
     }
 }
 
