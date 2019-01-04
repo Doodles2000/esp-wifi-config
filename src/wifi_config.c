@@ -651,6 +651,8 @@ static int wifi_config_station_connect() {
 
     INFO("Found configuration, connecting to %s", wifi_ssid);
 
+    if (sdk_wifi_get_opmode()!=STATION_MODE) sdk_wifi_set_opmode(STATION_MODE);
+
     struct sdk_station_config sta_config;
     sdk_wifi_station_get_config(&sta_config);
     //only have to set it if it is different
@@ -714,7 +716,7 @@ size_t tty_readline(char *buffer, size_t buf_size) {
 
 int  timeleft=30; //30 seconds timeout to setup the welcome screen
 #define CMD_BUF_SIZE 80
-#define DEFAULTREPO "HomeACessoryKid/ota-demo"
+#define DEFAULTREPO "HomeACcessoryKid/ota-demo"
 #define DEFAULTFILE "main.bin"
 void serial_input(void *arg) {
     char cmd_buffer[CMD_BUF_SIZE];
