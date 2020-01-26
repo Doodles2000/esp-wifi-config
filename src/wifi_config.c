@@ -726,52 +726,54 @@ void serial_input(void *arg) {
 
     printf(
     "\nLifeCycleManager version %s\n"
-    "Will start Wifi AP for config if no input in 5 seconds\n"
+    "Will start Wifi AP for config if no input in 10 seconds\n"
     "Press <enter> to begin\n"
     "Too Late, Typo? Just restart\n"
+    "Note that after flashing, one power-cycle is needed to prevent the reboot bug!\n"
     , OTAVERSION);
-    timeleft=5; //wait 5 seconds after presenting the welcome message
+    timeleft=10; //wait 10 seconds after presenting the welcome message
     tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the <enter>
-    timeleft=65535; //wait 'forever'
+    timeleft=1000; //wait 15+ minutes
 
-    printf( "Enter the ota repository or <enter> for " DEFAULTREPO "\n");
-    len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
-    if (!len) strcpy(cmd_buffer,DEFAULTREPO);
-    sysparam_set_string("ota_repo",cmd_buffer);
+    while (timeleft>1) {
+        printf( "Enter the ota repository or <enter> for " DEFAULTREPO "\n");
+        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
+        if (!len) strcpy(cmd_buffer,DEFAULTREPO);
+        sysparam_set_string("ota_repo",cmd_buffer);
     
-    printf("Enter the ota file or <enter> for " DEFAULTFILE "\n");
-    len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
-    if (!len) strcpy(cmd_buffer,DEFAULTFILE);
-    sysparam_set_string("ota_file",cmd_buffer);
+        printf("Enter the ota file or <enter> for " DEFAULTFILE "\n");
+        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
+        if (!len) strcpy(cmd_buffer,DEFAULTFILE);
+        sysparam_set_string("ota_file",cmd_buffer);
     
-    printf("Enter the ota use of pre-release \"y\" or <enter> for not\n");
-    len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
-    if (len) sysparam_set_string("ota_beta","y");
+        printf("Enter the ota use of pre-release \"y\" or <enter> for not\n");
+        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
+        if (len) sysparam_set_string("ota_beta","y");
     
-    printf("Enter the wifi SSID\n");
-    tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the SSID
-    sysparam_set_string("wifi_ssid",cmd_buffer);
+        printf("Enter the wifi SSID\n");
+        tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the SSID
+        sysparam_set_string("wifi_ssid",cmd_buffer);
     
-    printf("Enter the wifi password or <enter> to skip\n");
-    len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the password
-    if (len) sysparam_set_string("wifi_password",cmd_buffer);
+        printf("Enter the wifi password or <enter> to skip\n");
+        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the password
+        if (len) sysparam_set_string("wifi_password",cmd_buffer);
 
-    printf("Result:\n");
-    status = sysparam_iter_start(&iter);
-    if (status < 0) timeleft=1;
-    while (true) {
-        status = sysparam_iter_next(&iter);
-        if (status != SYSPARAM_OK) break; //at the end SYSPARAM_NOTFOUND
-        printf("'%s'='%s'\n",iter.key, (char *)iter.value);
+        printf("Result:\n");
+        status = sysparam_iter_start(&iter);
+        if (status < 0) timeleft=1;
+        while (true) {
+            status = sysparam_iter_next(&iter);
+            if (status != SYSPARAM_OK) break; //at the end SYSPARAM_NOTFOUND
+            printf("'%s'='%s'\n",iter.key, (char *)iter.value);
+        }
+        sysparam_iter_end(&iter);
+
+        printf("\nPress <enter> if this is OK,\n"
+                "Enter any other value to try again\n");
+        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the <enter>
+        if (!len) timeleft=1;
     }
-    sysparam_iter_end(&iter);
-
-    printf("\nIf this is not OK, re-flash the device\n"
-            "Press <enter> to continue\n");
-    tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the <enter>
-
-    timeleft=1;
-    vTaskDelete(NULL);
+    while (1) ; //wait for the end
 }    
 
 
@@ -779,13 +781,15 @@ void timeout_task(void *arg) {
     while(timeleft-->0) {
         vTaskDelay(1000/portTICK_PERIOD_MS); //1 second
     }
+    vTaskDelete(arg);
+    
     if (wifi_config_station_connect()) {
-        wifi_config_softap_start();
+        wifi_config_softap_start(); //TODO make this mode clean up 100% before declaring ready
     }   
     vTaskDelete(NULL);
 }
 
-
+TaskHandle_t xHandle = NULL;
 void wifi_config_init(const char *ssid_prefix, const char *password, void (*on_wifi_ready)()) {
     INFO("Initializing WiFi config");
     if (password && strlen(password) < 8) {
@@ -803,8 +807,8 @@ void wifi_config_init(const char *ssid_prefix, const char *password, void (*on_w
     context->on_wifi_ready = on_wifi_ready;
 
     if (wifi_config_station_connect()) {
-        xTaskCreate(timeout_task,"timeout",256,NULL,1,NULL);
-        xTaskCreate(serial_input,"serial" ,256,NULL,1,NULL);
+        xTaskCreate(serial_input,"serial" ,256,NULL,1,&xHandle);
+        xTaskCreate(timeout_task,"timeout",256,xHandle,1,NULL);
     }
 }
 
