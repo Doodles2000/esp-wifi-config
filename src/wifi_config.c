@@ -244,7 +244,7 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     form_param_t *otarepo_param = form_params_find(form, "otarepo");
     form_param_t *otafile_param = form_params_find(form, "otafile");
     form_param_t *otabeta_param = form_params_find(form, "otabeta");
-    if (!ssid_param || !password_param) {
+    if (!ssid_param) {
         form_params_free(form);
         client_send_redirect(client, 302, "/settings");
         return;
@@ -254,10 +254,14 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     client_send(client, payload, sizeof(payload)-1);
 
     sysparam_set_string("wifi_ssid", ssid_param->value);
-    sysparam_set_string("wifi_password", password_param->value);
     if (otarepo_param && otarepo_param->value) sysparam_set_string("ota_repo", otarepo_param->value);
     if (otafile_param && otafile_param->value) sysparam_set_string("ota_file", otafile_param->value);
     if (otabeta_param && otabeta_param->value) sysparam_set_bool("ota_beta", otabeta_param->value[0]-0x30);
+    if (password_param) {
+        sysparam_set_string("wifi_password", password_param->value);
+    } else {
+        sysparam_set_string("wifi_password", "");
+    }
     form_params_free(form);
 
     vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -424,6 +428,8 @@ static void http_task(void *arg) {
     INFO("Stopping HTTP server");
 
     lwip_close(listenfd);
+
+    context->http_task_handle=NULL;
     vTaskDelete(NULL);
 }
 
@@ -521,6 +527,7 @@ static void dns_task(void *arg)
 
     lwip_close(fd);
 
+    context->dns_task_handle=NULL;
     vTaskDelete(NULL);
 }
 
@@ -605,6 +612,7 @@ static void wifi_config_softap_stop() {
     dhcpserver_stop();
     dns_stop();
     http_stop();
+    while (context->dns_task_handle || context->http_task_handle) vTaskDelay(20/ portTICK_PERIOD_MS);
     sdk_wifi_set_opmode(STATION_MODE);
 }
 
