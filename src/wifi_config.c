@@ -192,6 +192,7 @@ static void wifi_scan_task(void *arg)
 
 static void wifi_config_server_on_settings(client_t *client) {
     char *ota_repo=NULL;
+    bool lcm_beta=0;
     static const char http_prologue[] =
         "HTTP/1.1 200 \r\n"
         "Content-Type: text/html; charset=utf-8\r\n"
@@ -224,6 +225,8 @@ static void wifi_config_server_on_settings(client_t *client) {
     
     if (sysparam_get_string("ota_repo", &ota_repo)!=SYSPARAM_OK) client_send_chunk(client, html_settings_otaparameters);
     else free(ota_repo);
+    
+    if (sysparam_get_bool("lcm_beta", &lcm_beta)==SYSPARAM_OK && lcm_beta) client_send_chunk(client, html_settings_otaserver);
 
     client_send_chunk(client, html_settings_footer);
     client_send_chunk(client, "");
@@ -244,6 +247,7 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     form_param_t *otarepo_param = form_params_find(form, "otarepo");
     form_param_t *otafile_param = form_params_find(form, "otafile");
     form_param_t *otabeta_param = form_params_find(form, "otabeta");
+    form_param_t *otasrvr_param = form_params_find(form, "otasrvr");
     if (!ssid_param) {
         form_params_free(form);
         client_send_redirect(client, 302, "/settings");
@@ -257,6 +261,8 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     if (otarepo_param && otarepo_param->value) sysparam_set_string("ota_repo", otarepo_param->value);
     if (otafile_param && otafile_param->value) sysparam_set_string("ota_file", otafile_param->value);
     if (otabeta_param && otabeta_param->value) sysparam_set_bool("ota_beta", otabeta_param->value[0]-0x30);
+    if (otasrvr_param && otasrvr_param->value && strcmp(otasrvr_param->value,"not.github.com/somewhere/"))
+                                               sysparam_set_string("ota_srvr", otasrvr_param->value);
     if (password_param) {
         sysparam_set_string("wifi_password", password_param->value);
     } else {
