@@ -244,6 +244,8 @@ static void wifi_config_server_on_settings_update(client_t *client) {
 
     form_param_t *ssid_param = form_params_find(form, "ssid");
     form_param_t *password_param = form_params_find(form, "password");
+    form_param_t *led_pin_param = form_params_find(form, "led_pin");
+    form_param_t *led_pol_param = form_params_find(form, "led_pol");
     form_param_t *otarepo_param = form_params_find(form, "otarepo");
     form_param_t *otafile_param = form_params_find(form, "otafile");
     form_param_t *otabeta_param = form_params_find(form, "otabeta");
@@ -258,6 +260,11 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     client_send(client, payload, sizeof(payload)-1);
 
     sysparam_set_string("wifi_ssid", ssid_param->value);
+    if (led_pin_param && led_pin_param->value && led_pol_param && led_pol_param->value) {
+        if (strcmp(led_pin_param->value,"n")) 
+             sysparam_set_int8("led_pin", (strcmp(led_pol_param->value,"1")?1:-1) * atoi(led_pin_param->value));
+        else if (!strcmp(led_pol_param->value,"1")) sysparam_set_data("led_pin", NULL,0,0); //wipe only if "n" and ledpol=1
+    }
     if (otarepo_param && otarepo_param->value) sysparam_set_string("ota_repo", otarepo_param->value);
     if (otafile_param && otafile_param->value) sysparam_set_string("ota_file", otafile_param->value);
     if (otabeta_param && otabeta_param->value) sysparam_set_bool("ota_beta", otabeta_param->value[0]-0x30);
