@@ -411,17 +411,16 @@ static void http_task(void *arg) {
 
         for (;;) {
             int data_len = lwip_read(client->fd, data, sizeof(data));
-            if (data_len == 0) {
-                break;
-            }
+            DEBUG("lwip_read: %d", data_len);
 
             if (data_len > 0) {
-                DEBUG("Got %d incoming data", data_len);
 
                 http_parser_execute(
                     &client->parser, &wifi_config_http_parser_settings,
                     data, data_len
                 );
+            } else {
+                break;
             }
 
             if (xTaskNotifyWait(0, 1, &task_value, 0) == pdTRUE) {
