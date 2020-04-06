@@ -768,7 +768,11 @@ void serial_input(void *arg) {
     
         printf("Enter the ota use of pre-release \"y\" or <enter> for not\n");
         len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
-        if (len) sysparam_set_string("ota_beta","y");
+        if (len) sysparam_set_string("ota_beta","y"); else sysparam_set_string("ota_beta","");
+    
+        printf("Enter the LED pin, use -15 till 15, or <enter> for not\n");
+        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
+        if (len) sysparam_set_int8("led_pin",atoi(cmd_buffer)); else sysparam_set_data("led_pin", NULL,0,0);
     
         printf("Enter the wifi SSID\n");
         tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the SSID
@@ -784,7 +788,9 @@ void serial_input(void *arg) {
         while (true) {
             status = sysparam_iter_next(&iter);
             if (status != SYSPARAM_OK) break; //at the end SYSPARAM_NOTFOUND
-            printf("'%s'='%s'\n",iter.key, (char *)iter.value);
+            printf("'%s'=",iter.key);
+            if (iter.binary) printf("%d\n",(int8_t)iter.value[0]);
+            else           printf("'%s'\n",(char *)iter.value);
         }
         sysparam_iter_end(&iter);
 
