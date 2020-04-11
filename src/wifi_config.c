@@ -753,25 +753,25 @@ void serial_input(void *arg) {
     , OTAVERSION);
     timeleft=10; //wait 10 seconds after presenting the welcome message
     tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the <enter>
-    timeleft=1000; //wait 15+ minutes
 
     while (timeleft>1) {
+        timeleft=300; //wait 5 minutes
         printf( "Enter the ota repository or <enter> for " DEFAULTREPO "\n");
         len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
         if (!len) strcpy(cmd_buffer,DEFAULTREPO);
         sysparam_set_string("ota_repo",cmd_buffer);
     
         printf("Enter the ota file or <enter> for " DEFAULTFILE "\n");
-        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
+        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otafile
         if (!len) strcpy(cmd_buffer,DEFAULTFILE);
         sysparam_set_string("ota_file",cmd_buffer);
     
         printf("Enter the ota use of pre-release \"y\" or <enter> for not\n");
-        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
+        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otabeta
         if (len) sysparam_set_string("ota_beta","y"); else sysparam_set_string("ota_beta","");
     
         printf("Enter the LED pin, use -15 till 15, or <enter> for not\n");
-        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
+        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the ledpin
         if (len) sysparam_set_int8("led_pin",atoi(cmd_buffer)); else sysparam_set_data("led_pin", NULL,0,0);
     
         printf("Enter the wifi SSID\n");
@@ -797,7 +797,11 @@ void serial_input(void *arg) {
         printf("\nPress <enter> if this is OK,\n"
                 "Enter any other value to try again\n");
         len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the <enter>
-        if (!len) timeleft=1;
+        if (!len) {
+            sysparam_set_string("ota_version","0.0.0");
+            timeleft=1;
+            break;
+        }
     }
     while (1) ; //wait for the end
 }    
@@ -810,7 +814,7 @@ void timeout_task(void *arg) {
     vTaskDelete(arg);
     
     if (wifi_config_station_connect()) {
-        wifi_config_softap_start(); //TODO make this mode clean up 100% before declaring ready
+        wifi_config_softap_start();
     }   
     vTaskDelete(NULL);
 }
