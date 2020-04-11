@@ -753,9 +753,9 @@ void serial_input(void *arg) {
     , OTAVERSION);
     timeleft=10; //wait 10 seconds after presenting the welcome message
     tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the <enter>
+    timeleft=1000; //wait 15+ minutes
 
     while (timeleft>1) {
-        timeleft=300; //wait 5 minutes
         printf( "Enter the ota repository or <enter> for " DEFAULTREPO "\n");
         len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
         if (!len) strcpy(cmd_buffer,DEFAULTREPO);
@@ -800,7 +800,6 @@ void serial_input(void *arg) {
         if (!len) {
             sysparam_set_string("ota_version","0.0.0");
             timeleft=1;
-            break;
         }
     }
     while (1) ; //wait for the end
