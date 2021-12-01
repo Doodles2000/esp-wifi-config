@@ -248,6 +248,7 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     form_param_t *led_pol_param = form_params_find(form, "led_pol");
     form_param_t *otarepo_param = form_params_find(form, "otarepo");
     form_param_t *otafile_param = form_params_find(form, "otafile");
+    form_param_t *otastr_param  = form_params_find(form, "otastr");
     form_param_t *otabeta_param = form_params_find(form, "otabeta");
     form_param_t *otasrvr_param = form_params_find(form, "otasrvr");
     if (!ssid_param) {
@@ -267,6 +268,7 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     }
     if (otarepo_param && otarepo_param->value) sysparam_set_string("ota_repo", otarepo_param->value);
     if (otafile_param && otafile_param->value) sysparam_set_string("ota_file", otafile_param->value);
+    if (otastr_param  && otastr_param->value) sysparam_set_string("ota_string", otastr_param->value);
     if (otabeta_param && otabeta_param->value) sysparam_set_bool("ota_beta", otabeta_param->value[0]-0x30);
     if (otasrvr_param && otasrvr_param->value && strcmp(otasrvr_param->value,"not.github.com/somewhere/"))
                                                sysparam_set_string("ota_srvr", otasrvr_param->value);
@@ -765,6 +767,11 @@ void serial_input(void *arg) {
         len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otafile
         if (!len) strcpy(cmd_buffer,DEFAULTFILE);
         sysparam_set_string("ota_file",cmd_buffer);
+    
+        printf("Enter the ota parameters or <enter> for \"\"\n");
+        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the ota parameters
+        if (!len) strcpy(cmd_buffer,"");
+        sysparam_set_string("ota_string",cmd_buffer);
     
         printf("Enter the ota use of pre-release \"y\" or <enter> for not\n");
         len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otabeta
