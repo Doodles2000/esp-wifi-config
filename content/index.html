@@ -81,9 +81,9 @@ input[type=submit][disabled] {
             <div class="field led_pin" style="display: block;">
                 <label style="float: left" for="led_pin">
                 <select name="led_pin" id="led_pin">
-                  <option value="n">no pin</option>
-                  <option value="2">gpio-2</option><option value="4">gpio-4</option><option value="5">gpio-5</option>
-                  <option value="12">gpio-12</option><option value="13">gpio-13</option><option value="14">gpio-14</option>
+                  <option value="2">gpio-2</option>
+                  <option value="4">gpio-4</option><option value="5">gpio-5</option><option value="12">gpio-12</option>
+                  <option value="13">gpio-13</option><option value="14">gpio-14</option><option value="n">no pin</option>
                 </select>
                 is LedPin
                 </label>
@@ -100,7 +100,7 @@ input[type=submit][disabled] {
                 <!-- part HTML_SETTINGS_OTAPARAMETERS -->
             <div class="field otarepo" style="display: block;">
                 <label for="otarepo">OTA repository:</label>
-                <input type="text" id="otarepo" name="otarepo" value="HomeACcessoryKid/ota-demo" />
+                <input type="text" id="otarepo" name="otarepo" value="Doodles2000/ota-demo" />
             </div>
             <div class="field otafile" style="display: block;">
                 <label for="otafile">OTA binary file:</label>
@@ -113,10 +113,15 @@ input[type=submit][disabled] {
                 Use (maybe broken) pre-releases?
                 </label>
             </div>
+            <br>
+            <div class="field otahost" style="display: block;">
+                <label for="otahost">Device hostname:</label>
+                <input type="text" id="otahost" name="otahost" value="" />
+            </div>            
 
                 <!-- part HTML_SETTINGS_OTASERVER -->
-                <br>
-                Use OTA backup server only if Github is broken!!!<br>
+            <br>
+            Use OTA backup server only if Github is broken!!!<br>
             <div class="field otasrvr" style="display: block;">
                 <label for="otasrvr">OTA backup server:</label>
                 <input type="text" id="otasrvr" name="otasrvr" value="not.github.com/somewhere/" />
