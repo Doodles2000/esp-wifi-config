@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 import re
 import sys
@@ -9,13 +9,13 @@ def gen_embedded(content):
 
     part_headers = list(re.finditer(r'<!-- part (\S+) -->', content))
     if not part_headers:
-        print 'Error: no parts found'
+        print('Error: no parts found')
         return
 
     def process_part(part):
         return "\n".join(
-            "\"" + line.replace('"', '\\"') + "\""
-            for line in part.split("\n")
+            "\"" + line.lstrip().replace('"', '\\"') + "\""
+            for line in part.splitlines()
             if line.strip()
         )
 
@@ -38,7 +38,7 @@ def gen_embedded(content):
 def main():
     file_path = sys.argv[1]
     with open(file_path) as f:
-        print gen_embedded(f.read())
+        print(gen_embedded(f.read()))
 
 
 if __name__ == '__main__':

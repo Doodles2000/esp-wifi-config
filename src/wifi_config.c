@@ -251,6 +251,7 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     form_param_t *otastr_param  = form_params_find(form, "otastr");
     form_param_t *otabeta_param = form_params_find(form, "otabeta");
     form_param_t *otasrvr_param = form_params_find(form, "otasrvr");
+    form_param_t *otahost_param = form_params_find(form, "otahost");
     if (!ssid_param) {
         form_params_free(form);
         client_send_redirect(client, 302, "/settings");
@@ -339,7 +340,7 @@ static int wifi_config_server_on_message_complete(http_parser *parser) {
             break;
         }
         case ENDPOINT_UNKNOWN: {
-            DEBUG("Unknown endpoint");
+            DEBUG("Unknown endpoint -> redirecting to http://192.168.4.1/settings");
             client_send_redirect(client, 302, "http://192.168.4.1/settings");
             break;
         }
@@ -569,6 +570,7 @@ static void wifi_config_context_free(wifi_config_context_t *context) {
     free(context);
 }
 
+
 static void wifi_config_softap_start() {
     INFO("Starting AP mode");
 
@@ -688,7 +690,7 @@ static int wifi_config_station_connect() {
         sdk_wifi_station_set_config(&sta_config);
     }
     sdk_wifi_station_connect();
-    
+
     //only have to set it if it is different
     if (!sdk_wifi_station_get_auto_connect()) {
         sdk_wifi_station_set_auto_connect(true);
@@ -738,8 +740,10 @@ size_t tty_readline(char *buffer, size_t buf_size) {
 
 int  timeleft=30; //30 seconds timeout to setup the welcome screen
 #define CMD_BUF_SIZE 80
-#define DEFAULTREPO "HomeACcessoryKid/ota-demo"
+#define DEFAULTREPO "Doodles2000/ota-demo"
 #define DEFAULTFILE "main.bin"
+// #define DEFAULTHOSTNAME "ESP-"
+
 void serial_input(void *arg) {
     char cmd_buffer[CMD_BUF_SIZE];
     size_t len;
@@ -748,16 +752,22 @@ void serial_input(void *arg) {
 
     printf(
     "\nLifeCycleManager version %s\n"
+    , OTAVERSION
+    "Too Late or Typo? Just restart\n"
+    "Note that after flashing, one power-cycle is needed to prevent the reboot bug!\n"
     "Will start Wifi AP for config if no input in 10 seconds\n"
     "Press <enter> to begin\n"
-    "Too Late, Typo? Just restart\n"
-    "Note that after flashing, one power-cycle is needed to prevent the reboot bug!\n"
-    , OTAVERSION);
+    );
     timeleft=10; //wait 10 seconds after presenting the welcome message
     tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the <enter>
     timeleft=1000; //wait 15+ minutes
 
     while (timeleft>1) {
+        printf( "Enter the device hostname or <enter> for " DEFAULTHOSTNAME "\n");
+        len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
+        if (!len) strcpy(cmd_buffer,DEFAULTHOSTNAME);
+        sysparam_set_string("hostname",cmd_buffer);
+
         printf( "Enter the ota repository or <enter> for " DEFAULTREPO "\n");
         len=tty_readline(cmd_buffer, CMD_BUF_SIZE); //collect the otarepo
         if (!len) strcpy(cmd_buffer,DEFAULTREPO);
@@ -826,6 +836,7 @@ void timeout_task(void *arg) {
 }
 
 TaskHandle_t xHandle = NULL;
+
 void wifi_config_init(const char *ssid_prefix, const char *password, void (*on_wifi_ready)()) {
     INFO("Initializing WiFi config");
     if (password && strlen(password) < 8) {
@@ -864,4 +875,12 @@ void wifi_config_get(char **ssid, char **password) {
 void wifi_config_set(const char *ssid, const char *password) {
     sysparam_set_string("wifi_ssid", ssid);
     sysparam_set_string("wifi_password", password);
+}
+
+
+void default_host_name_set() {
+    uint8_t macaddr[6];
+    sdk_wifi_get_macaddr(STATION_IF, macaddr);
+    *hostname=malloc(7);
+    sprintf(*hostname,"%02X%02X%02X",macaddr[3], macaddr[4], macaddr[5]);
 }
