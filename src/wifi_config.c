@@ -251,7 +251,7 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     form_param_t *otastr_param  = form_params_find(form, "otastr");
     form_param_t *otabeta_param = form_params_find(form, "otabeta");
     form_param_t *otasrvr_param = form_params_find(form, "otasrvr");
-    form_param_t *otahost_param = form_params_find(form, "otahost");
+    form_param_t *otahostn_param = form_params_find(form, "otahostn");
     if (!ssid_param) {
         form_params_free(form);
         client_send_redirect(client, 302, "/settings");
@@ -278,6 +278,8 @@ static void wifi_config_server_on_settings_update(client_t *client) {
     } else {
         sysparam_set_string("wifi_password", "");
     }
+    if (otahostn_param && otahostn_param->value) sysparam_set_string("hostname", otahostn_param->value);
+    
     form_params_free(form);
 
     vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -742,7 +744,7 @@ int  timeleft=30; //30 seconds timeout to setup the welcome screen
 #define CMD_BUF_SIZE 80
 #define DEFAULTREPO "Doodles2000/ota-demo"
 #define DEFAULTFILE "main.bin"
-// #define DEFAULTHOSTNAME "ESP-"
+#define DEFAULTHOSTNAME "ESP-"
 
 void serial_input(void *arg) {
     char cmd_buffer[CMD_BUF_SIZE];
